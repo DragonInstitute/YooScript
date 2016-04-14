@@ -84,7 +84,7 @@ public class Parser {
         Token token = lookAhead;
         match(Tag.NUM);
         match(']');
-        if (lookAhead.tag != '[') {
+        if (lookAhead.tag == '[') {
             p = dims(p);
         }
         return new Array(((Num) token).value, p);
