@@ -11,7 +11,7 @@ public class Seq extends Stmt {
 
     public void gen(int b, int a) {
         if (stmt1 == Stmt.Null) {
-            stmt1.gen(b, a);
+            stmt2.gen(b, a);
         } else if (stmt2 == Stmt.Null) {
             stmt1.gen(b, a);
         } else {
