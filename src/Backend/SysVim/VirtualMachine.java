@@ -1,16 +1,9 @@
 package Backend.SysVim;
 
-import Backend.Exception.UnrecognizeTypeException;
-import Frontend.Lexer.Num;
-import Frontend.Lexer.Tag;
-import Frontend.Lexer.Token;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.Vector;
-
-import Frontend.Lexer.Real;
 
 public class VirtualMachine {
     //instructions.get()
@@ -54,41 +47,18 @@ public class VirtualMachine {
     private final static int FLAG = 212; // flag
     private final static int REGISTER_SIZE = 214;
 
-    private static Vector<Token> stack = new Vector<>();
-    private static Vector<Token> registers = new Vector<>();
-    pri
-    private static Vector<Integer> instructions = new Vector<>();
+    private static Vector<Integer> stack = new Vector<Integer>();
+    private static Vector<Integer> registers = new Vector<Integer>();
+    private static Vector<Integer> instructions = new Vector<Integer>();
     private static boolean running = true;
     private static boolean isJump = false;
 
     private int insCount = 0;
     private int ins;
 
-    Object getValue(Token token) {
-        switch (token.tag) {
-            case Tag.REAL: {
-                return ((Real) token).value;
-            }
-            case Tag.NUM: {
-                return ((Num) token).value;
-            }
-            default: {
-                throw new UnrecognizeTypeException();
-            }
-        }
-    }
-
-    boolean tokenEqualValue(Token token, int value) {
-        return getValue(registers.get(EX)).equals(value);
-    }
-
-    boolean tokenEqualValue(Token token, float value) {
-        return getValue(registers.get(EX)).equals(value);
-    }
-
     private void dumpStack() {
         System.out.println("Stack Dump:");
-        for (Object i : stack) {
+        for (Integer i : stack) {
             System.out.print(i + " ");
         }
         System.out.println();
@@ -96,7 +66,7 @@ public class VirtualMachine {
 
     private void dumpRegisters() {
         System.out.println("Register Dump:");
-        for (Object i : registers) {
+        for (Integer i : registers) {
             System.out.print(i + " ");
         }
         System.out.println();
@@ -104,7 +74,7 @@ public class VirtualMachine {
 
     private int findEmptyRegister() {
         for (int i = 0; i < REGISTER_SIZE; i++) {
-            if (!tokenEqualValue(registers.get(EX), i) && !tokenEqualValue(registers.get(EXA), i)) {
+            if (i != registers.get(EX) && i != registers.get(EXA)) {
                 return i;
             }
         }
@@ -112,15 +82,15 @@ public class VirtualMachine {
     }
 
     private void spSub() {
-        registers.set(SP, Token.build(sp() - 1));
+        registers.set(SP, sp() - 1);
     }
 
     private void spPlus() {
-        registers.set(SP, Token.build(sp() + 1));
+        registers.set(SP, sp() + 1);
     }
 
     private void forward(int n) {
-        registers.set(IP, Token.build(ip() + n);
+        registers.set(IP, ip() + n);
     }
 
     private int getThisInst() {
@@ -131,11 +101,11 @@ public class VirtualMachine {
         return instructions.get(ip);
     }
 
-    private Token sp() {
+    private int sp() {
         return registers.get(SP);
     }
 
-    private Token ip() {
+    private int ip() {
         return registers.get(IP);
     }
 
@@ -282,12 +252,6 @@ public class VirtualMachine {
                 isJump = true;
                 break;
             }
-
-//            private final static int EQ = 17;   // eq reg_a reg_b :: if reg_a == reg_b, flag == 1
-//            private final static int NEQ = 18;  // eq reg_a reg_b :: if reg_a != reg_b, flag == 1
-//            private final static int SEQ = 19;  // seq              :: if stack == stack - 1, flag == 1
-//            private final static int SNEQ = 20; // sneq             :: if stack != stack - 1, flag == 1
-//            private final static int CLRF = 21; // clrf             :: clear flag, flag = 0
             case EQ: {
                 registers.set(FLAG, (registers.get(getInst(ip() + 1)).intValue() == registers.get(getInst(ip() + 2)).intValue()) ? 1 : 0);
                 forward(2);
@@ -299,11 +263,11 @@ public class VirtualMachine {
                 break;
             }
             case SEQ: {
-                registers.set(FLAG, (top() == stack.get(sp() - 1)) ? 1 : 0);
+                registers.set(FLAG, (registers.get(top()).intValue() == registers.get(top() - 1).intValue()) ? 1 : 0);
                 break;
             }
             case SNEQ: {
-                registers.set(FLAG, (top() != stack.get(sp() - 1)) ? 1 : 0);
+                registers.set(FLAG, (registers.get(top()).intValue() != registers.get(top() - 1).intValue()) ? 1 : 0);
                 break;
             }
             case CLRF: {
