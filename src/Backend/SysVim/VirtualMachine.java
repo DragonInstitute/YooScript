@@ -39,23 +39,24 @@ public class VirtualMachine {
     private final static int BIG = 22;
 
     // registers.get()
-    private final static int A = 0;
-    private final static int B = 1;
-    private final static int C = 2;
-    private final static int D = 3;
-    private final static int E = 4;
-    private final static int F = 5;
-    private final static int I = 6;
-    private final static int J = 7;
-    private final static int EX = 8;
-    private final static int EXA = 9;
-    private final static int FLAG = 10; // flag
-    private final static int REGISTER_SIZE = 11;
+    private final static int A = 200;
+    private final static int B = 201;
+    private final static int C = 202;
+    private final static int D = 203;
+    private final static int E = 204;
+    private final static int F = 205;
+    private final static int I = 206;
+    private final static int J = 207;
+    private final static int EX = 208;
+    private final static int EXA = 209;
+    private final static int IP = 210;
+    private final static int SP = 211;
+    private final static int FLAG = 212; // flag
+    private final static int REGISTER_SIZE = 214;
 
     private static Vector<Token> stack = new Vector<>();
     private static Vector<Token> registers = new Vector<>();
-    private static int ip = 0;
-    private static int sp = -1;
+    pri
     private static Vector<Integer> instructions = new Vector<>();
     private static boolean running = true;
     private static boolean isJump = false;
@@ -63,7 +64,7 @@ public class VirtualMachine {
     private int insCount = 0;
     private int ins;
 
-    private Object getValue(Token token) {
+    Object getValue(Token token) {
         switch (token.tag) {
             case Tag.REAL: {
                 return ((Real) token).value;
@@ -77,11 +78,11 @@ public class VirtualMachine {
         }
     }
 
-    private boolean tokenEqualValue(Token token, int value) {
+    boolean tokenEqualValue(Token token, int value) {
         return getValue(registers.get(EX)).equals(value);
     }
 
-    private boolean tokenEqualValue(Token token, float value) {
+    boolean tokenEqualValue(Token token, float value) {
         return getValue(registers.get(EX)).equals(value);
     }
 
@@ -111,31 +112,39 @@ public class VirtualMachine {
     }
 
     private void spSub() {
-        sp --;
+        registers.set(SP, Token.build(sp() - 1));
     }
 
     private void spPlus() {
-        sp ++;
+        registers.set(SP, Token.build(sp() + 1));
     }
 
     private void forward(int n) {
-        ip += n;
+        registers.set(IP, Token.build(ip() + n);
     }
 
     private int getThisInst() {
-        return instructions.get(ip);
+        return instructions.get(ip());
     }
 
     private int getInst(int ip) {
         return instructions.get(ip);
     }
 
-    private void setStack(int sp, Token value) {
+    private Token sp() {
+        return registers.get(SP);
+    }
+
+    private Token ip() {
+        return registers.get(IP);
+    }
+
+    private void setStack(int sp, int value) {
         stack.set(sp, value);
     }
 
-    private Token top() {
-        return stack.get(sp);
+    private int top() {
+        return stack.get(sp());
     }
 
     private void stop() {
@@ -153,7 +162,7 @@ public class VirtualMachine {
             case PUSH: {
                 spPlus();
                 forward(1);
-                setStack(sp, Token.build(getThisInst()));
+                setStack(sp(), getThisInst());
                 // push the value to the top of stack
                 break;
             }
@@ -167,7 +176,7 @@ public class VirtualMachine {
                 spSub();
 
                 registers.set(B, top());
-                registers.set(C, Token.build(getValue(registers.get(A)) + getValue(registers.get(B))));
+                registers.set(C, registers.get(A) + registers.get(B));
 
                 setStack(sp(), registers.get(C));
                 System.out.println(registers.get(B) + " + " + registers.get(A) + " = " + registers.get(C));

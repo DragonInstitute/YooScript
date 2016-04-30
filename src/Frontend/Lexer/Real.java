@@ -1,5 +1,7 @@
 package Frontend.Lexer;
 
+import java.math.BigInteger;
+
 public class Real extends Token{
 
     public final double value;
@@ -10,7 +12,9 @@ public class Real extends Token{
     }
 
     public String toString() {
-        return "" + value;
+        String text = String.valueOf(value);
+        BigInteger bigInt = new BigInteger(text.getBytes());
+        return "" + bigInt.toString();
     }
 
 }
