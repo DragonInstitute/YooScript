@@ -8,6 +8,13 @@ public class Token {
         tag = t;
     }
 
+    public static Token build(int n){
+        return new Num(n);
+    }
+    static Token build(float n){
+        return new Real(n);
+    }
+
     public String toString() {
         return "" + (char) tag;
     }

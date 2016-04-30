@@ -3,9 +3,13 @@ SYSViM，全称Stack-based YooScript Virtual Machine，用于运行翻译YooScri
 
 ## 约定
 全部大写的是指令或非通用寄存器
+
 全部小写并且reg开头的是通用寄存器
+
 首字母大写的是字面量
+
 其他寄存器一般不允许使用
+
 ip是特例，代表下一个指令的位置
 
 ## 提醒
@@ -22,7 +26,7 @@ ip是特例，代表下一个指令的位置
 栈顶两元素之和入栈
 ### ADD （MUL） （DIV） （SUB） Value1 Value2
 两元素之和入栈
-### SMALL reg1 reg2
+### LESS reg1 reg2
 若 reg_1 < reg_2，则FLAG为1，否则为0
 ### MOV reg1 reg2
 将reg1赋值为reg2

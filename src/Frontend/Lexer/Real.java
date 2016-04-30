@@ -2,9 +2,9 @@ package Frontend.Lexer;
 
 public class Real extends Token{
 
-    public final float value;
+    public final double value;
 
-    public Real(float t) {
+    public Real(double t) {
         super(Tag.REAL);
         value = t;
     }
