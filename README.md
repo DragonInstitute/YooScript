@@ -1,6 +1,6 @@
-# CompilerFrontend
+# Compiler For YooScript
 
-Like a homework?
+Like a homework.
 
 # Features
 
