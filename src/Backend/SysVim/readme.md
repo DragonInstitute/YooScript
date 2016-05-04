@@ -26,8 +26,6 @@ ip是特例，代表下一个指令的位置
 寄存器入栈
 ### POP reg NOP
 栈顶元素出栈并且载入寄存器reg
-### SAVE address reg
-将reg中的值存入address中
 ### ADD （MUL） （DIV） （SUB） reg1 reg2
 两寄存器之和入栈
 ### MOV reg1 reg2

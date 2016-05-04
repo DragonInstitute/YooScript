@@ -21,7 +21,7 @@ public class VirtualMachine {
     private final static int IF = 11;
     private final static int IFN = 12;
     private final static int LODR = 13;
-    private final static int PSHR = 14;
+    private final static int PSHR_ABANDONED = 14;
     private final static int NOP = 15;
     private final static int JUMP = 16;
     private final static int EQ = 17;
@@ -30,8 +30,8 @@ public class VirtualMachine {
     private final static int SNEQ = 20;
     private final static int CLRF = 21;
     private final static int BIG = 22;
-    private final static int SAVE = 23;
-    private final static int LOAD = 24;
+    private final static int SAVE_ABANDONED = 23;
+    private final static int LOAD_ABANDONED = 24;
     private final static int SETA = 25;
     private final static int LODA = 26;
 
@@ -157,7 +157,6 @@ public class VirtualMachine {
     private static int getDataByOffset(int offset) {
         return data.get(offset);
     }
-
 
     private void eval(int instruction) {
         isJump = false;
