@@ -105,7 +105,7 @@ public class VirtualMachine {
         return instructions.get(getIPValue());
     }
 
-    private static int getInstByIP(int ip) {
+    private static int getInstByIndex(int ip) {
         return instructions.get(ip);
     }
 
@@ -147,7 +147,7 @@ public class VirtualMachine {
     }
 
     private static int getInstByOffset(int index) {
-        return getInstByIP(getIPValue() + index);
+        return getInstByIndex(getIPValue() + index);
     }
 
     private static void setData(int offset, int val) {
@@ -178,11 +178,6 @@ public class VirtualMachine {
                 break;
             }
             case ADD: {
-//                registers.set(A, getTopValue());
-//                spSub();
-//                registers.set(B, getTopValue());
-//                registers.set(C, registers.get(A) + registers.get(B));
-//                setStack(getSPValue(), registers.get(C));
                 int a = getRegValue(getInstByOffset(1));
                 int b = getRegValue(getInstByOffset(2));
                 push(a + b);
@@ -190,13 +185,6 @@ public class VirtualMachine {
                 break;
             }
             case MUL: {
-//                registers.set(A, getTopValue());
-//                spSub();
-//                registers.set(B, getTopValue());
-//            /*SP = SP - 1;*/
-//                registers.set(C, registers.get(B) * registers.get(A));
-//            /*SP = SP + 1;*/
-//                setStack(getSPValue(), registers.get(C));
                 int a = getRegValue(getInstByOffset(1));
                 int b = getRegValue(getInstByOffset(2));
                 push(a * b);
@@ -204,13 +192,6 @@ public class VirtualMachine {
                 break;
             }
             case DIV: {
-//                registers.set(A, getTopValue());
-//                spSub();
-//                registers.set(B, getTopValue());
-//            /* SP = SP - 1;*/
-//                registers.set(C, registers.get(B) / registers.get(A));
-//            /* SP = SP + 1; */
-//                setStack(getSPValue(), registers.get(C));
                 int a = getRegValue(getInstByOffset(1));
                 int b = getRegValue(getInstByOffset(2));
                 push(a / b);
@@ -218,13 +199,6 @@ public class VirtualMachine {
                 break;
             }
             case SUB: {
-//                registers.set(A, getTopValue());
-//                spSub();
-//                registers.set(B, getTopValue());
-//            /* SP = SP - 1; */
-//                registers.set(C, registers.get(B) - registers.get(A));
-//            /* SP = SP + 1; */
-//                setStack(getSPValue(), registers.get(C));
                 int a = getRegValue(getInstByOffset(1));
                 int b = getRegValue(getInstByOffset(2));
                 push(a - b);
@@ -327,32 +301,28 @@ public class VirtualMachine {
             System.out.println("No input file!");
             return;
         }
-        File in = null;
+        File in;
         try {
             in = new File(args[0]);
             Scanner scanner = new Scanner(in);
             int i = 0;
             while (scanner.hasNextInt()) {
                 instructions.add(i, scanner.nextInt());
-                System.out.print(instructions.get(i) + " ");
+                System.out.print(getInstByIndex(i) + " ");
                 i++;
             }
             System.out.println();
             virtualMachine.insCount = i;
-            registers.set(SP, -1);
-            registers.set(IP, 0);
+            setRegValue(SP, -1);
+            setRegValue(IP, 0);
             while (running && getRegValue(IP) < virtualMachine.insCount) {
-                virtualMachine.eval(instructions.get(getRegValue(IP)));
+                virtualMachine.eval(getInstByIndex(getRegValue(IP)));
                 if (!isJump) {
-                    registers.set(IP, getRegValue(IP) + 1);
+                    forward(3);
                 }
             }
         } catch (IOException e) {
             System.out.println(e.toString());
         }
-
-
     }
-
-
 }
