@@ -10,26 +10,30 @@ public class VirtualMachine {
     private final static int STOP = 0;
     private final static int PUSH = 1;
     private final static int POP = 2;
-    private final static int ADD = 3; // add or add reg_a reg_b     :: adds top two vals on stack
-    private final static int MUL = 4; // mul                         :: multiplies top two vals on stack
-    private final static int DIV = 5; // div                       :: divides top two vals on stack
-    private final static int SUB = 6; // sub                       :: subtracts top two vals on stack
-    private final static int LESS = 7; // less reg_a, reg_b         :: pushes (reg_a < reg_b) to stack
-    private final static int MOV = 8; // mov reg_a, reg_b            :: moves the value in reg_a to reg_b
-    private final static int SET = 9; // set reg, 5                 :: sets the reg to value
-    private final static int LOG = 10; // log reg
-    private final static int IF = 11; // if ip              :: if the flag == 0 branch to the ip
-    private final static int IFN = 12; // ifn ip   :: if the flag != 0 val branch to the ip
-    private final static int LODR = 13; // lodr reg          :: loads a register to the stack
-    private final static int PSHR = 14; // pshr reg          :: pushes top of stack to the given register
-    private final static int NOP = 15; // nop              :: nothing
-    private final static int JUMP = 16; // jump ip          :: jump to the ip
-    private final static int EQ = 17;   // eq reg_a reg_b :: if reg_a == reg_b, flag == 1
-    private final static int NEQ = 18;  // eq reg_a reg_b :: if reg_a != reg_b, flag == 1
-    private final static int SEQ = 19;  // seq              :: if stack == stack - 1, flag == 1
-    private final static int SNEQ = 20; // sneq             :: if stack != stack - 1, flag == 1
-    private final static int CLRF = 21; // clrf             :: clear flag, flag = 0
+    private final static int ADD = 3;
+    private final static int MUL = 4;
+    private final static int DIV = 5;
+    private final static int SUB = 6;
+    private final static int LESS = 7;
+    private final static int MOV = 8;
+    private final static int SET = 9;
+    private final static int LOG = 10;
+    private final static int IF = 11;
+    private final static int IFN = 12;
+    private final static int LODR = 13;
+    private final static int PSHR = 14;
+    private final static int NOP = 15;
+    private final static int JUMP = 16;
+    private final static int EQ = 17;
+    private final static int NEQ = 18;
+    private final static int SEQ = 19;
+    private final static int SNEQ = 20;
+    private final static int CLRF = 21;
     private final static int BIG = 22;
+    private final static int SAVE = 23;
+    private final static int LOAD = 24;
+    private final static int SETA = 25;
+    private final static int LODA = 26;
 
     // registers.get()
     private final static int A = 200;
@@ -47,9 +51,13 @@ public class VirtualMachine {
     private final static int FLAG = 212; // flag
     private final static int REGISTER_SIZE = 214;
 
-    private static Vector<Integer> stack = new Vector<Integer>();
-    private static Vector<Integer> registers = new Vector<Integer>();
-    private static Vector<Integer> instructions = new Vector<Integer>();
+    private static Vector<Integer> stack = new Vector<>();
+    // calling frame
+    private static Vector<Integer> frame = new Vector<>();
+    // data segment
+    private static Vector<Integer> data = new Vector<>();
+    private static Vector<Integer> registers = new Vector<>();
+    private static Vector<Integer> instructions = new Vector<>();
     private static boolean running = true;
     private static boolean isJump = false;
 
@@ -81,202 +89,220 @@ public class VirtualMachine {
         return EX;
     }
 
-    private void spSub() {
-        registers.set(SP, sp() - 1);
+    private static void spSub() {
+        registers.set(SP, getSPValue() - 1);
     }
 
-    private void spPlus() {
-        registers.set(SP, sp() + 1);
+    private static void spPlus() {
+        registers.set(SP, getSPValue() + 1);
     }
 
-    private void forward(int n) {
-        registers.set(IP, ip() + n);
+    private static void forward(int n) {
+        registers.set(IP, getIPValue() + n);
     }
 
-    private int getThisInst() {
-        return instructions.get(ip());
+    private static int getThisInst() {
+        return instructions.get(getIPValue());
     }
 
-    private int getInst(int ip) {
+    private static int getInstByIP(int ip) {
         return instructions.get(ip);
     }
 
-    private int sp() {
+    private static int getSPValue() {
         return registers.get(SP);
     }
 
-    private int ip() {
+    private static int getIPValue() {
         return registers.get(IP);
     }
 
-    private void setStack(int sp, int value) {
+    private static void setStack(int sp, int value) {
         stack.set(sp, value);
     }
 
-    private int top() {
-        return stack.get(sp());
+    private static int getTopValue() {
+        return stack.get(getSPValue());
     }
 
-    private void stop() {
+    private static int getStackValue(int index) {
+        return stack.get(index);
+    }
+
+    private static void push(int val) {
+        spPlus();
+        setStack(getSPValue(), val);
+    }
+
+    private static void stop() {
         running = false;
     }
+
+    private static int getRegValue(int reg) {
+        return registers.get(reg);
+    }
+
+    private static void setRegValue(int inst, int val) {
+        registers.set(inst, val);
+    }
+
+    private static int getInstByOffset(int index) {
+        return getInstByIP(getIPValue() + index);
+    }
+
+    private static void setData(int offset, int val) {
+        data.set(offset, val);
+    }
+
+    private static int getDataByOffset(int offset) {
+        return data.get(offset);
+    }
+
 
     private void eval(int instruction) {
         isJump = false;
         switch (instruction) {
             case STOP: {
                 stop();
-                System.out.println("Executed");
+                System.out.println("Terminated");
                 break;
             }
             case PUSH: {
                 spPlus();
-                forward(1);
-                setStack(sp(), getThisInst());
-                // push the value to the top of stack
+                setStack(getSPValue(), getRegValue(getInstByOffset(1)));
                 break;
             }
             case POP: {
+                setRegValue(getInstByOffset(1), getTopValue());
                 spSub();
-                // stack pointer lower
                 break;
             }
             case ADD: {
-                registers.set(A, top());
-                spSub();
-
-                registers.set(B, top());
-                registers.set(C, registers.get(A) + registers.get(B));
-
-                setStack(sp(), registers.get(C));
-                System.out.println(registers.get(B) + " + " + registers.get(A) + " = " + registers.get(C));
+//                registers.set(A, getTopValue());
+//                spSub();
+//                registers.set(B, getTopValue());
+//                registers.set(C, registers.get(A) + registers.get(B));
+//                setStack(getSPValue(), registers.get(C));
+                int a = getRegValue(getInstByOffset(1));
+                int b = getRegValue(getInstByOffset(2));
+                push(a + b);
+                System.out.println(a + " + " + b + " = " + getTopValue());
                 break;
             }
             case MUL: {
-                registers.set(A, top());
-                spSub();
-
-                registers.set(B, top());
-            /*SP = SP - 1;*/
-
-                registers.set(C, registers.get(B) * registers.get(A));
-
-            /*SP = SP + 1;*/
-                setStack(sp(), registers.get(C));
-                System.out.println(registers.get(B) + " * " + registers.get(A) + " = " + registers.get(C));
+//                registers.set(A, getTopValue());
+//                spSub();
+//                registers.set(B, getTopValue());
+//            /*SP = SP - 1;*/
+//                registers.set(C, registers.get(B) * registers.get(A));
+//            /*SP = SP + 1;*/
+//                setStack(getSPValue(), registers.get(C));
+                int a = getRegValue(getInstByOffset(1));
+                int b = getRegValue(getInstByOffset(2));
+                push(a * b);
+                System.out.println(a + " * " + b + " = " + getTopValue());
                 break;
             }
             case DIV: {
-                registers.set(A, top());
-                spSub();
-
-                registers.set(B, top());
-            /* SP = SP - 1;*/
-
-                registers.set(C, registers.get(B) / registers.get(A));
-
-            /* SP = SP + 1; */
-                setStack(sp(), registers.get(C));
-                System.out.println(registers.get(B) + " / " + registers.get(A) + " = " + registers.get(C));
+//                registers.set(A, getTopValue());
+//                spSub();
+//                registers.set(B, getTopValue());
+//            /* SP = SP - 1;*/
+//                registers.set(C, registers.get(B) / registers.get(A));
+//            /* SP = SP + 1; */
+//                setStack(getSPValue(), registers.get(C));
+                int a = getRegValue(getInstByOffset(1));
+                int b = getRegValue(getInstByOffset(2));
+                push(a / b);
+                System.out.println(a + " / " + b + " = " + getTopValue());
                 break;
             }
             case SUB: {
-                registers.set(A, top());
-                spSub();
-
-                registers.set(B, top());
-            /* SP = SP - 1; */
-
-                registers.set(C, registers.get(B) - registers.get(A));
-
-            /* SP = SP + 1; */
-                setStack(sp(), registers.get(C));
-                System.out.println(registers.get(B) + " - " + registers.get(A) + " = " + registers.get(C));
-                break;
-            }
-            case LESS: {
-                registers.set(FLAG, (registers.get(getInst(ip() + 1)) < registers.get(getInst(ip() + 2))) ? 1 : 0);
-                forward(2);
+//                registers.set(A, getTopValue());
+//                spSub();
+//                registers.set(B, getTopValue());
+//            /* SP = SP - 1; */
+//                registers.set(C, registers.get(B) - registers.get(A));
+//            /* SP = SP + 1; */
+//                setStack(getSPValue(), registers.get(C));
+                int a = getRegValue(getInstByOffset(1));
+                int b = getRegValue(getInstByOffset(2));
+                push(a - b);
+                System.out.println(a + " - " + b + " = " + getTopValue());
                 break;
             }
             case MOV: {
-                registers.set(getInst(ip() + 1), registers.get(getInst(ip() + 2)));
-                forward(2);
+                setRegValue(getInstByOffset(1), getRegValue(getInstByOffset(2)));
                 break;
             }
             case SET: {
-                registers.set(getInst(ip() + 1), getInst(ip() + 2));
-                forward(2);
+                setRegValue(getInstByOffset(1), getInstByOffset(2));
+                break;
+            }
+            case SETA: {
+                setData(getInstByOffset(1), getRegValue(getInstByOffset(2)));
+                break;
+            }
+            case LODA: {
+                setRegValue(getInstByOffset(1), getDataByOffset(getInstByOffset(2)));
                 break;
             }
             case LOG: {
-                System.out.println("Log: " + registers.get(getInst(ip() + 1)));
-                forward(1);
+                System.out.println("Log: " + getRegValue(getInstByOffset(1)));
                 break;
             }
             case IF: {
-                if (registers.get(FLAG) == 1) {
-                    registers.set(IP, getInst(ip() + 1));
+                if (getRegValue(FLAG) == 1) {
+                    setRegValue(IP, getInstByOffset(1));
                     isJump = true;
-                } else {
-                    forward(1);
                 }
                 break;
             }
             case IFN: {
-                if (registers.get(FLAG) == 0) {
-                    registers.set(IP, getInst(ip() + 1));
+                if (getRegValue(FLAG) == 0) {
+                    setRegValue(IP, getInstByOffset(1));
                     isJump = true;
-                } else {
-                    forward(1);
                 }
                 break;
             }
             case LODR: {
-                spPlus();
-                forward(1);
-                stack.set(sp(), registers.get(getInst(ip())));
-                break;
-            }
-            case PSHR: {
-                registers.set(getInst(ip() + 1), stack.get(sp()));
-                forward(1);
+                setRegValue(getInstByOffset(1), getTopValue());
                 break;
             }
             case NOP: {
-                System.out.println("Do Nothing");
                 break;
             }
             case JUMP: {
-                registers.set(IP, getInst(ip() + 1));
+                setRegValue(IP, getInstByOffset(1));
                 isJump = true;
                 break;
             }
             case EQ: {
-                registers.set(FLAG, (registers.get(getInst(ip() + 1)).intValue() == registers.get(getInst(ip() + 2)).intValue()) ? 1 : 0);
-                forward(2);
+                setRegValue(FLAG, (getRegValue(getInstByOffset(1)) == getRegValue(getInstByOffset(2))) ? 1 : 0);
                 break;
             }
             case NEQ: {
-                registers.set(FLAG, (registers.get(getInst(ip() + 1)).intValue() != registers.get(getInst(ip() + 2)).intValue()) ? 1 : 0);
-                forward(2);
+                setRegValue(FLAG, (getRegValue(getInstByOffset(1)) != getRegValue(getInstByOffset(2))) ? 1 : 0);
                 break;
             }
             case SEQ: {
-                registers.set(FLAG, (registers.get(top()).intValue() == registers.get(top() - 1).intValue()) ? 1 : 0);
+                setRegValue(FLAG, (getRegValue(getTopValue()) == getRegValue(getStackValue(getSPValue() - 1))) ? 1 : 0);
                 break;
             }
             case SNEQ: {
-                registers.set(FLAG, (registers.get(top()).intValue() != registers.get(top() - 1).intValue()) ? 1 : 0);
+                setRegValue(FLAG, (getRegValue(getTopValue()) != getRegValue(getStackValue(getSPValue() - 1))) ? 1 : 0);
                 break;
             }
             case CLRF: {
-                registers.set(FLAG, 0);
+                setRegValue(FLAG, 0);
                 break;
             }
             case BIG: {
-                registers.set(FLAG, (registers.get(getInst(ip() + 1)) > registers.get(getInst(ip() + 2))) ? 1 : 0);
-                forward(2);
+                setRegValue(FLAG, (getRegValue(getInstByOffset(1)) > getRegValue(getInstByOffset(2))) ? 1 : 0);
+                break;
+            }
+            case LESS: {
+                setRegValue(FLAG, (getRegValue(getInstByOffset(1)) < getRegValue(getInstByOffset(2))) ? 1 : 0);
                 break;
             }
             default: {
@@ -315,10 +341,10 @@ public class VirtualMachine {
             virtualMachine.insCount = i;
             registers.set(SP, -1);
             registers.set(IP, 0);
-            while (running && registers.get(IP) < virtualMachine.insCount) {
-                virtualMachine.eval(instructions.get(registers.get(IP)));
+            while (running && getRegValue(IP) < virtualMachine.insCount) {
+                virtualMachine.eval(instructions.get(getRegValue(IP)));
                 if (!isJump) {
-                    registers.set(IP, registers.get(IP) + 1);
+                    registers.set(IP, getRegValue(IP) + 1);
                 }
             }
         } catch (IOException e) {
@@ -330,5 +356,3 @@ public class VirtualMachine {
 
 
 }
-
-
