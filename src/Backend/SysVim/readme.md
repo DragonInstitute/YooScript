@@ -34,6 +34,8 @@ ip是特例，代表下一个指令的位置
 将reg赋值为value
 ### SETA address reg
 将address赋值为reg中的值
+### SAVE address value
+将address赋值为value
 ### LODA reg1 address
 将reg赋值为address中对应的值
 ### LOG reg NOP

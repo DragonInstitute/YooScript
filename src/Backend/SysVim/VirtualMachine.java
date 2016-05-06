@@ -2,6 +2,7 @@ package Backend.SysVim;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Vector;
 
@@ -30,7 +31,7 @@ public class VirtualMachine {
     private final static int SNEQ = 20;
     private final static int CLRF = 21;
     private final static int BIG = 22;
-    private final static int SAVE_ABANDONED = 23;
+    private final static int SAVE = 23;
     private final static int LOAD_ABANDONED = 24;
     private final static int SETA = 25;
     private final static int LODA = 26;
@@ -56,7 +57,19 @@ public class VirtualMachine {
     private static Vector<Integer> frame = new Vector<>();
     // data segment
     private static Vector<Integer> data = new Vector<>();
-    private static Vector<Integer> registers = new Vector<>();
+    private static HashMap<Integer, Integer> registers = new HashMap<>();
+
+    static {
+        registers.put(A, 0);
+        registers.put(B, 0);
+        registers.put(C, 0);
+        registers.put(D, 0);
+        registers.put(E, 0);
+        registers.put(F, 0);
+        registers.put(I, 0);
+        registers.put(J, 0);
+    }
+
     private static Vector<Integer> instructions = new Vector<>();
     private static boolean running = true;
     private static boolean isJump = false;
@@ -72,13 +85,13 @@ public class VirtualMachine {
         System.out.println();
     }
 
-    private void dumpRegisters() {
-        System.out.println("Register Dump:");
-        for (Integer i : registers) {
-            System.out.print(i + " ");
-        }
-        System.out.println();
-    }
+//    private void dumpRegisters() {
+//        System.out.println("Register Dump:");
+//        for (Integer i : registers) {
+//            System.out.print(i + " ");
+//        }
+//        System.out.println();
+//    }
 
     private int findEmptyRegister() {
         for (int i = 0; i < REGISTER_SIZE; i++) {
@@ -90,15 +103,15 @@ public class VirtualMachine {
     }
 
     private static void spSub() {
-        registers.set(SP, getSPValue() - 1);
+        registers.put(SP, getSPValue() - 1);
     }
 
     private static void spPlus() {
-        registers.set(SP, getSPValue() + 1);
+        registers.put(SP, getSPValue() + 1);
     }
 
     private static void forward(int n) {
-        registers.set(IP, getIPValue() + n);
+        registers.put(IP, getIPValue() + n);
     }
 
     private static int getThisInst() {
@@ -143,7 +156,7 @@ public class VirtualMachine {
     }
 
     private static void setRegValue(int inst, int val) {
-        registers.set(inst, val);
+        registers.put(inst, val);
     }
 
     private static int getInstByOffset(int index) {
@@ -216,6 +229,10 @@ public class VirtualMachine {
                 setData(getInstByOffset(1), getRegValue(getInstByOffset(2)));
                 break;
             }
+            case SAVE: {
+                setData(getInstByOffset(1), getInstByOffset(2));
+                break;
+            }
             case LODA: {
                 setRegValue(getInstByOffset(1), getDataByOffset(getInstByOffset(2)));
                 break;
@@ -279,7 +296,7 @@ public class VirtualMachine {
                 break;
             }
             default: {
-                System.out.println("Unknown Instruction " + instruction);
+                System.out.println("Unknown Instruction " + instruction + ", Skipped.");
                 break;
             }
         }
@@ -289,9 +306,9 @@ public class VirtualMachine {
         VirtualMachine virtualMachine = new VirtualMachine();
 
 
-        for (int i = 0; i < REGISTER_SIZE; i++) {
-            registers.add(-2);
-        }
+//        for (int i = 0; i < REGISTER_SIZE; i++) {
+//            registers.add(-2);
+//        }
         for (int i = 0; i < 256; i++) {
             stack.add(-3);
         }
