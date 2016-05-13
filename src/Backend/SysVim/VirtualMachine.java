@@ -8,6 +8,7 @@ import java.util.Vector;
 
 public class VirtualMachine {
     //instructions.get()
+    //repeat private final static can make them easy to read
     private final static int STOP = 0;
     private final static int PUSH = 1;
     private final static int POP = 2;

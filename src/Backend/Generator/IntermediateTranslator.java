@@ -1,5 +1,7 @@
 package Backend.Generator;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -68,6 +70,7 @@ public class IntermediateTranslator {
         return 0;
     }
 
+    @Nullable
     private static Vector<Integer> getVarOfReg(int regId) {
         if (!registers.containsKey(regId)) {
             return null;

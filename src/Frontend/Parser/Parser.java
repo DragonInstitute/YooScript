@@ -20,19 +20,19 @@ public class Parser {
         move();
     }
 
-    void move() throws IOException {
+    private void move() throws IOException {
         lookAhead = lexer.scan();
     }
 
-    void error(String s) {
+    private void error(String s) {
         throw new Error("near line " + lexer.line + ": " + s);
     }
 
-    void match(int t) throws IOException {
+    private void match(int t) throws IOException {
         if (lookAhead.tag == t) {
             move();
         } else {
-            error("syntax error");
+            error("syntax error, expected " + (char)t + " but receive " + (char)lookAhead.tag);
         }
 
     }
@@ -46,7 +46,7 @@ public class Parser {
         s.emitLabel(after);
     }
 
-    Stmt block() throws IOException {
+    private Stmt block() throws IOException {
         match('{');
         Env savedEnv = top;
         top = new Env(top);
@@ -57,7 +57,7 @@ public class Parser {
         return s;
     }
 
-    void decls() throws IOException {
+    private void decls() throws IOException {
         while (lookAhead.tag == Tag.BASIC) {
             Type p = type();
             Token token = lookAhead;
@@ -69,7 +69,7 @@ public class Parser {
         }
     }
 
-    Type type() throws IOException {
+    private Type type() throws IOException {
         Type p = (Type) lookAhead;
         System.out.println();
         match(Tag.BASIC);
@@ -79,7 +79,7 @@ public class Parser {
         return dims(p);
     }
 
-    Type dims(Type p) throws IOException {
+    private Type dims(Type p) throws IOException {
         match('[');
         Token token = lookAhead;
         match(Tag.NUM);
@@ -90,14 +90,14 @@ public class Parser {
         return new Array(((Num) token).value, p);
     }
 
-    Stmt stmts() throws IOException {
+    private Stmt stmts() throws IOException {
         if (lookAhead.tag == '}') {
             return Stmt.Null;
         }
         return new Seq(stmt(), stmts());
     }
 
-    Stmt stmt() throws IOException {
+    private Stmt stmt() throws IOException {
         Expr x;
         Stmt s, s1, s2;
         Stmt savedStmt; // for break
@@ -155,7 +155,7 @@ public class Parser {
 
     }
 
-    Stmt assign() throws IOException {
+    private Stmt assign() throws IOException {
         Stmt stmt;
         Token token = lookAhead;
         match(Tag.ID);
@@ -175,7 +175,7 @@ public class Parser {
         return stmt;
     }
 
-    Expr bool() throws IOException {
+    private Expr bool() throws IOException {
         Expr x = join();
         while (lookAhead.tag == Tag.OR) {
             Token token = lookAhead;
@@ -185,7 +185,7 @@ public class Parser {
         return x;
     }
 
-    Expr join() throws IOException {
+    private Expr join() throws IOException {
         Expr x = equality();
         while (lookAhead.tag == Tag.AND) {
             Token token = lookAhead;
@@ -195,7 +195,7 @@ public class Parser {
         return x;
     }
 
-    Expr equality() throws IOException {
+    private Expr equality() throws IOException {
         Expr x = rel();
         while (lookAhead.tag == Tag.EQ || lookAhead.tag == Tag.NE) {
             Token token = lookAhead;
@@ -205,7 +205,7 @@ public class Parser {
         return x;
     }
 
-    Expr rel() throws IOException {
+    private Expr rel() throws IOException {
         Expr x = expr();
         switch (lookAhead.tag) {
             case '<':
@@ -220,7 +220,7 @@ public class Parser {
         }
     }
 
-    Expr expr() throws IOException {
+    private Expr expr() throws IOException {
         Expr x = term();
         while (lookAhead.tag == '+' || lookAhead.tag == '-') {
             Token token = lookAhead;
@@ -230,7 +230,7 @@ public class Parser {
         return x;
     }
 
-    Expr term() throws IOException {
+    private Expr term() throws IOException {
         Expr x = unary();
         while (lookAhead.tag == '*' || lookAhead.tag == '/') {
             Token token = lookAhead;
@@ -240,7 +240,7 @@ public class Parser {
         return x;
     }
 
-    Expr unary() throws IOException {
+    private Expr unary() throws IOException {
         if (lookAhead.tag == '-') {
             move();
             return new Unary(Word.minus, unary());
@@ -252,7 +252,7 @@ public class Parser {
         return factor();
     }
 
-    Expr factor() throws IOException {
+    private Expr factor() throws IOException {
         Expr x = null;
         switch (lookAhead.tag) {
             case '(':
@@ -276,9 +276,6 @@ public class Parser {
                 x = Constant.False;
                 move();
                 return x;
-            default:
-                error("syntax error");
-                return x;
             case Tag.ID:
                 String s = lookAhead.toString();
                 Id id = top.get(lookAhead);
@@ -291,11 +288,13 @@ public class Parser {
                 } else {
                     return offset(id);
                 }
-
+            default:
+                error("syntax error, receive wrong type "+(char)lookAhead.tag);
+                return x;
         }
     }
 
-    Access offset(Id a) throws IOException {
+    private Access offset(Id a) throws IOException {
         Expr i, w, t1, t2, local;
         Type type = a.type;
         match('[');

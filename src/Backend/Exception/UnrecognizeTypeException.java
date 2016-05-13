@@ -1,5 +1,5 @@
 package Backend.Exception;
 
-public class UnrecognizeTypeException extends Error {
+public class UnrecognizeTypeException extends Exception {
 
 }
