@@ -1,7 +1,5 @@
 package Backend.Generator;
 
-import org.jetbrains.annotations.Contract;
-
 import java.io.*;
 import java.util.Scanner;
 
@@ -48,7 +46,6 @@ public class AssemblyTranslator {
         }
     }
 
-    @Contract(pure = true)
     private static String emit(String in) {
         int code = -1; // NOP
         switch (in) {

@@ -64,3 +64,7 @@ ip是特例，代表下一个指令的位置
 若 reg1 > reg2，则FLAG为1，否则为0
 ### LESS reg1 reg2
 若 reg_1 < reg_2，则FLAG为1，否则为0
+### BIGE reg1 reg2
+若 reg1 >= reg2，则FLAG为1，否则为0
+### LESE reg1 reg2
+若 reg_1 <= reg_2，则FLAG为1，否则为0
