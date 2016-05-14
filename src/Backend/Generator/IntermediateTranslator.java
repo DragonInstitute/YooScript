@@ -21,6 +21,13 @@ class DataHelper {
     private final static int I = 206;
     private final static int J = 207;
 
+    private final static int EX = 208;
+    private final static int EXA = 209;
+    private final static int IP = 210;
+    private final static int SP = 211;
+    private final static int FLAG = 212; // flag
+    private final static int REGISTER_SIZE = 214;
+
     private final static int RegType = 0;
     private final static int VarType = 1;
     // int =  {var, Reg}
@@ -42,6 +49,10 @@ class DataHelper {
         registers.put(F, new Vector<>());
         registers.put(I, new Vector<>());
         registers.put(J, new Vector<>());
+    }
+
+    public int getFlag() {
+        return FLAG;
     }
 
     public void newVar(int varId) {
@@ -311,6 +322,12 @@ class DataHelper {
 
 public class IntermediateTranslator {
 
+    private enum Condition {
+        IF, IFFALSE
+    }
+
+    private static final boolean DEBUG = true;
+
     // TODO: Pattern failed should push back code
     // HashTable <LabelId, InstructionPosition(line)>
     private Hashtable<Integer, Integer> labels = new Hashtable<>();
@@ -319,11 +336,11 @@ public class IntermediateTranslator {
     private int line = 1;
     private String current;
     private String next;
-    private static final boolean DEBUG = false;
     private DataHelper dataHelper = new DataHelper();
     private File file;
     private Hashtable<String, Integer> varMap = new Hashtable<>();
     private int varId = 1;
+    private LineNumberReader lineNumberReader;
 
     // map relationship
     // varName -> varId -> hashcode -> stack / reg  -> value
@@ -336,6 +353,12 @@ public class IntermediateTranslator {
             scanner = new Scanner(file);
             writer = new FileWriter(output);
             next = scanner.next();
+
+//            lineNumberReader = new LineNumberReader(new FileReader(file));
+//            String line = lineNumberReader.readLine();
+//            Scanner s = new Scanner(line);
+//            next = scanner.next();
+
         } catch (IOException e) {
             System.out.println("Build translator failed");
             System.out.println(e.toString());
@@ -351,15 +374,12 @@ public class IntermediateTranslator {
         String input = "test.inter";
         IntermediateTranslator translator = new IntermediateTranslator(input, "out.sysvim");
         translator.buildLabelTable();
-        translator.idEmit();
-        translator.idEmit();
-        translator.idEmit();
-        translator.idEmit();
-        translator.idEmit();
-        translator.idEmit();
-        translator.idEmit();
-        translator.idEmit();
-        translator.idEmit();
+        translator.assginEmit();
+        translator.assginEmit();
+        translator.assginEmit();
+        translator.assginEmit();
+        translator.labelEmit();
+        translator.ifEmit();
     }
 
     private void buildLabelTable() {
@@ -381,7 +401,7 @@ public class IntermediateTranslator {
         if ((label = readLabel()) != 0) {
             if (current.charAt(current.length() - 1) == ':') {
                 labels.put(label, line);
-                log("label " + label + " is saved");
+                log("label " + label + " is saved in line " + line);
             }
             return true;
         } else {
@@ -403,29 +423,65 @@ public class IntermediateTranslator {
         }
     }
 
-    private boolean ifEmit() {
+    private void ifEmit() {
         next();
         if (current.startsWith("if")) {
             if (current.length() == 2) {
-                log("if");
+                conditionEmit(Condition.IF);
             } else if (current.length() == 7 && current.substring(current.length() - 5).equals("false")) {
-                log("iffalse");
+                conditionEmit(Condition.IFFALSE);
             } else {
                 idEmit();
             }
         }
-        return true;
+        gotoEmit();
     }
 
-    private boolean idEmit() {
+    private void conditionEmit(Condition condition) {
+        boolEmit();
+        match("goto");
+        int label = readLabel();
+        switch (condition) {
+            case IF:
+                emit("if "+labels.get(label)+" nop");
+                break;
+            case IFFALSE:
+                emit("ifn "+labels.get(label)+" nop");
+                break;
+        }
+    }
+
+    private void match(String s) {
+        next();
+        if (current.equals(s)) {
+            next();
+        } else {
+            throw new IllegalArgumentException("unexpected " + current + ", expected " + s);
+        }
+    }
+
+    private void boolEmit() {
+        operatorEmit(dataHelper.getFlag());
+    }
+
+    private void assginEmit() {
+        int reg = idEmit();
+        next();
+        if(!current.equals("=")){
+            throw new IllegalArgumentException("expected = but receive "+current);
+        }
+        operatorEmit(reg);
+        emit("pop " + reg + " nop");
+    }
+
+    private int idEmit() {
         int hash = this.newMappingOrGetHash(current);
         if (!dataHelper.stackHasVar(hash)) {
             dataHelper.newVar(hash);
         }
         int reg = dataHelper.getReg(hash);
         dataHelper.regAddVar(reg, hash);
-        assignEmit(reg);
-        return true;
+        return reg;
     }
 
     private int newMappingOrGetHash(String key) {
@@ -441,11 +497,9 @@ public class IntermediateTranslator {
         return hash;
     }
 
-    private void assignEmit(int resultReg) {
+    private void operatorEmit(int resultReg) {
         // result op param1 [ op2, param2 ]
         int param1, param2;
-        next();
-        String op = getOperator();
         next();
         param1 = getParamAndEmitReg();
         next();
@@ -459,7 +513,6 @@ public class IntermediateTranslator {
             next();
             param2 = getParamAndEmitReg();
             emit(op2 + " " + param1 + " " + param2);
-            emit("pop " + resultReg + " nop");
         }
     }
 
@@ -475,6 +528,18 @@ public class IntermediateTranslator {
                 return "mul";
             case "/":
                 return "div";
+            case "==":
+                return "eq";
+            case "!=":
+                return "neq";
+            case ">":
+                return "big";
+            case ">=":
+                return "bige";
+            case "<":
+                return "less";
+            case "<=":
+                return "lese";
             default:
                 return null;
         }
@@ -517,21 +582,9 @@ public class IntermediateTranslator {
                 label = label * 10 + Integer.valueOf(Character.valueOf(current.charAt(i)).toString());
                 i++;
             }
-            log("" + label);
             return label;
         } else {
             return 0;
-        }
-    }
-
-    private void eval() {
-        try {
-            while (scanner.hasNext()) {
-                emit(scanner.next());
-            }
-            writer.close();
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
         }
     }
 
