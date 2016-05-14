@@ -1,11 +1,10 @@
 package Backend.Generator;
 
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Vector;
+import java.io.*;
+import java.util.*;
 
-public class IntermediateTranslator {
+class DataHelper {
 
     /**
      * Generate "binary" for SYSVim from intermediate code
@@ -45,7 +44,7 @@ public class IntermediateTranslator {
 
     /**
      * Add var description to reg without any check which ensure that the value of them are equal
-     * */
+     */
     private static void regAddVar(int regId, int varId) {
         Vector<Integer> vars = registers.get(regId);
         if (!vars.contains(varId)) {
@@ -55,14 +54,14 @@ public class IntermediateTranslator {
 
     /**
      * Add var description to reg if the value of them are equal
-     * */
-    private static void regPutVar(int regId, int varId){
+     */
+    private static void regPutVar(int regId, int varId) {
 
     }
 
     /**
      * return reg has a var or not
-     * */
+     */
     private static boolean regHasVar(int regId, int varId) {
         if (!registers.containsKey(regId)) {
             return false;
@@ -79,7 +78,7 @@ public class IntermediateTranslator {
     /**
      * return the reg which the var is store according to the var description
      * return 0 if there is not reg description
-     * */
+     */
     private static int getRegOfVar(int varId) {
         for (Map.Entry<Integer, Vector<Integer>> entry : registers.entrySet()) {
             Vector<Integer> previous = entry.getValue();
@@ -95,7 +94,7 @@ public class IntermediateTranslator {
     /**
      * return a vector which contains all var in the reg
      * the value of them are equal
-     * */
+     */
     private static Vector<Integer> getVarOfReg(int regId) {
         if (!registers.containsKey(regId)) {
             return null;
@@ -105,7 +104,7 @@ public class IntermediateTranslator {
 
     /**
      * return a empty reg or return 0 if there is not empty reg
-     * */
+     */
     private static int getEmptyReg() {
         for (Map.Entry<Integer, Vector<Integer>> entry : registers.entrySet()) {
             if (entry.getValue().size() == 0) {
@@ -117,14 +116,14 @@ public class IntermediateTranslator {
 
     /**
      * replace or add description of a var
-     * */
+     */
     private static void varAddRegDesc(int varId, int regId) {
         varAddDesc(varId, regId, RegType);
     }
 
     /**
      * remove reg description of a var
-     * */
+     */
     private static boolean varRmRegDesc(int varId) {
         boolean hasKey = variables.containsKey(varId);
         if (hasKey) {
@@ -138,7 +137,7 @@ public class IntermediateTranslator {
     /**
      * the place in the stack of the var add var description
      * to describe that the value of a var is stored
-     * */
+     */
     private static void stackAddVarDesc(int varId) {
         varAddDesc(varId, 0, VarType);
     }
@@ -146,7 +145,7 @@ public class IntermediateTranslator {
     /**
      * return if there is a reg which store the var or not
      * TODO: REFACTOR, this function may return false always according to the logic
-     * */
+     */
     private static boolean varSavedExceptReg(int varId, int regId) {
         int reg = getRegOfVar(varId);
         // this var is saved in a reg and is not the reg we want to rewrite
@@ -155,7 +154,7 @@ public class IntermediateTranslator {
 
     /**
      * basic function of add description for var
-     * */
+     */
     private static void varAddDesc(int varId, int regId, int type) {
         boolean hasKey = variables.containsKey(varId);
         if (hasKey) {
@@ -169,21 +168,21 @@ public class IntermediateTranslator {
 
     /**
      * return if there is reg description of a var
-     * */
+     */
     private static boolean varHasRegDesc(int varId, int regId) {
         return varHasDesc(varId, regId, RegType);
     }
 
     /**
      * return if the place of var in stack have stored the value of the var
-     * */
+     */
     private static boolean stackHasVarDesc(int varId) {
         return varHasDesc(varId, 0, VarType);
     }
 
     /**
      * basic function of judge description of var
-     * */
+     */
     private static boolean varHasDesc(int varId, int regId, int type) {
         if (!variables.containsKey(varId)) {
             return false;
@@ -196,7 +195,7 @@ public class IntermediateTranslator {
 
     /**
      * return a valid reg which every value of the vars in it was stored
-     * */
+     */
     private static int candidateReg() {
         boolean breaked = false;
         for (Map.Entry<Integer, Vector<Integer>> entry : registers.entrySet()) {
@@ -208,7 +207,7 @@ public class IntermediateTranslator {
                     break;
                 }
             }
-            if(!breaked){
+            if (!breaked) {
                 return entry.getKey();
             }
         }
@@ -217,19 +216,19 @@ public class IntermediateTranslator {
 
     /**
      * there is not valid reg, so spill the value in a reg to stack and return it
-     * */
+     */
     private static void spill(int regId) {
         Vector<Integer> vars = getVarOfReg(regId);
         if (vars != null) {
             for (Integer varId : vars) {
-                System.out.println("save " + varId +" "+ regId);
+                System.out.println("save " + varId + " " + regId);
             }
         }
     }
 
     /**
      * return a valid reg which can be use directly
-     * */
+     */
     private static int getReg(int ins) {
         int y = getRegOfVar(ins);
         if (y == 0) {
@@ -266,4 +265,143 @@ public class IntermediateTranslator {
 //        assert getRegOfVar(100) == 0;
         System.out.println(getReg(15));
     }
+}
+
+public class IntermediateTranslator {
+
+    // TODO: Pattern failed should push back code
+    // HashTable <LabelId, InstructionPosition(line)>
+    private Hashtable<Integer, Integer> labels = new Hashtable<>();
+    private Scanner scanner;
+    private FileWriter writer;
+    private int line = 1;
+    private String next;
+    private static final boolean DEBUG = true;
+    private DataHelper dataHelper = new DataHelper();
+    private File file;
+
+    private IntermediateTranslator(String input, String output) {
+        try {
+            file = new File(input);
+            scanner = new Scanner(file);
+            writer = new FileWriter(output);
+        } catch (IOException e) {
+            System.out.println("Build translator failed");
+            System.out.println(e.toString());
+        }
+    }
+
+    private void next() {
+        next = scanner.next();
+    }
+
+    public static void main(String[] args) {
+        String input = "test.inter";
+        IntermediateTranslator translator = new IntermediateTranslator(input, "out.sysvim");
+        translator.buildLabelTable();
+        translator.labelEmit();
+        translator.labelEmit();
+        translator.gotoEmit();
+        translator.gotoEmit();
+        translator.gotoEmit();
+        translator.labelEmit();
+        translator.ifEmit();
+    }
+
+    private void buildLabelTable() {
+        while (scanner.hasNext()) {
+            labelEmit();
+        }
+        try {
+            scanner = new Scanner(file);
+        } catch (FileNotFoundException e) {
+            System.out.println(e.toString());
+        }
+    }
+
+    private boolean labelEmit() {
+        next();
+        int label;
+        if ((label = readLabel()) != 0) {
+            if (next.charAt(next.length() - 1) == ':') {
+                labels.put(label, line);
+                log("label " + label + " is saved");
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean gotoEmit() {
+        next();
+        switch (next) {
+            case "goto":
+                next();
+                int label = readLabel();
+                emit("jump " + labels.get(label) + " nop");
+                line++;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean ifEmit() {
+        next();
+        if (next.startsWith("if")) {
+            if (next.length() == 2) {
+                log("if");
+            } else if (next.length() == 7 && next.substring(next.length() - 5).equals("false")) {
+                log("iffalse");
+            } else {
+                idEmit();
+            }
+        }
+        return true;
+    }
+
+    private boolean conditionEmit(){
+        return true;
+    }
+
+    private boolean idEmit(){
+        return true;
+    }
+
+    private int readLabel() {
+        if (next.charAt(0) == 'L') {
+            int i = 1;
+            int label = 0;
+            while (next.length() > i && Character.isDigit(next.charAt(i))) {
+                label = label * 10 + Integer.valueOf(Character.valueOf(next.charAt(i)).toString());
+                i++;
+            }
+            log("" + label);
+            return label;
+        } else {
+            return 0;
+        }
+    }
+
+    private void eval() {
+        try {
+            while (scanner.hasNext()) {
+                emit(scanner.next());
+            }
+            writer.close();
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private void emit(String code) {
+        System.out.println(code);
+    }
+
+    private void log(String info) {
+        if (DEBUG)
+            System.out.println(info);
+    }
+
 }
