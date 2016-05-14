@@ -329,11 +329,11 @@ public class IntermediateTranslator {
     private static final boolean DEBUG = true;
 
     // TODO: Pattern failed should push back code
-    // HashTable <LabelId, InstructionPosition(line)>
+    // HashTable <LabelId, InstructionPosition(lineNumber)>
     private Hashtable<Integer, Integer> labels = new Hashtable<>();
     private Scanner scanner;
     private FileWriter writer;
-    private int line = 1;
+    private int lineNumber = 1;
     private String current;
     private String next;
     private DataHelper dataHelper = new DataHelper();
@@ -350,14 +350,11 @@ public class IntermediateTranslator {
     private IntermediateTranslator(String input, String output) {
         try {
             file = new File(input);
-            scanner = new Scanner(file);
             writer = new FileWriter(output);
-            next = scanner.next();
 
-//            lineNumberReader = new LineNumberReader(new FileReader(file));
-//            String line = lineNumberReader.readLine();
-//            Scanner s = new Scanner(line);
-//            next = scanner.next();
+            lineNumberReader = new LineNumberReader(new FileReader(file));
+            scanner = new Scanner(lineNumberReader.readLine());
+            next = scanner.next();
 
         } catch (IOException e) {
             System.out.println("Build translator failed");
@@ -366,8 +363,16 @@ public class IntermediateTranslator {
     }
 
     private void next() {
-        current = next;
-        next = scanner.next();
+        try {
+            if (!scanner.hasNext()) {
+                scanner = new Scanner(lineNumberReader.readLine());
+                lineNumber++;
+            }
+            current = next;
+            next = scanner.next();
+        } catch (IOException e) {
+            System.out.println(e.toString());
+        }
     }
 
     public static void main(String[] args) {
@@ -383,14 +388,20 @@ public class IntermediateTranslator {
     }
 
     private void buildLabelTable() {
-        while (scanner.hasNext()) {
-            labelEmit();
-        }
+        String line;
         try {
+        while ((line = lineNumberReader.readLine()) != null) {
+            lineNumber++;
+            scanner = new Scanner(line);
+
+            while (scanner.hasNext()) {
+                labelEmit();
+            }
+        }
             scanner = new Scanner(file);
             current = scanner.next();
             next = scanner.next();
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             System.out.println(e.toString());
         }
     }
@@ -400,8 +411,8 @@ public class IntermediateTranslator {
         int label;
         if ((label = readLabel()) != 0) {
             if (current.charAt(current.length() - 1) == ':') {
-                labels.put(label, line);
-                log("label " + label + " is saved in line " + line);
+                labels.put(label, lineNumber);
+                log("label " + label + " is saved in lineNumber " + lineNumber);
             }
             return true;
         } else {
@@ -416,7 +427,7 @@ public class IntermediateTranslator {
                 next();
                 int label = readLabel();
                 emit("jump " + labels.get(label) + " nop");
-                line++;
+                lineNumber++;
                 return true;
             default:
                 return false;
@@ -443,10 +454,10 @@ public class IntermediateTranslator {
         int label = readLabel();
         switch (condition) {
             case IF:
-                emit("if "+labels.get(label)+" nop");
+                emit("if " + labels.get(label) + " nop");
                 break;
             case IFFALSE:
-                emit("ifn "+labels.get(label)+" nop");
+                emit("ifn " + labels.get(label) + " nop");
                 break;
         }
     }
@@ -467,8 +478,8 @@ public class IntermediateTranslator {
     private void assginEmit() {
         int reg = idEmit();
         next();
-        if(!current.equals("=")){
-            throw new IllegalArgumentException("expected = but receive "+current);
+        if (!current.equals("=")) {
+            throw new IllegalArgumentException("expected = but receive " + current);
         }
         operatorEmit(reg);
         emit("pop " + reg + " nop");
