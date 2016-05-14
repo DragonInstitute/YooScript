@@ -20,7 +20,7 @@ public class Node {
     }
 
     public void emitLabel(int i) {
-        System.out.print("L" + i + ":");
+        System.out.print("L" + i + ": ");
     }
 
     public void emit(String s) {
