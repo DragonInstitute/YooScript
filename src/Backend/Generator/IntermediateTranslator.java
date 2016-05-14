@@ -4,6 +4,7 @@ package Backend.Generator;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.*;
+import java.nio.CharBuffer;
 import java.util.*;
 
 class DataHelper {
@@ -326,7 +327,11 @@ public class IntermediateTranslator {
         IF, IFFALSE
     }
 
-    private static final boolean DEBUG = true;
+    private enum Type {
+        CONDITION, ASSIGN, GOTO, LABEL, VARIABLE, CONST
+    }
+
+    private static final boolean DEBUG = false;
 
     // TODO: Pattern failed should push back code
     // HashTable <LabelId, InstructionPosition(lineNumber)>
@@ -362,10 +367,37 @@ public class IntermediateTranslator {
         }
     }
 
+    // TODO: 16-5-14 after every function ended current should be the next char
+
+    public static void main(String[] args) {
+        String input = "test.inter";
+        IntermediateTranslator translator = new IntermediateTranslator(input, "out.sysvim");
+        translator.buildLabelTable();
+//        translator.eval();
+        translator.assignEmit();
+        translator.assignEmit();
+        translator.assignEmit();
+        translator.assignEmit();
+        translator.labelEmit();
+        translator.ifEmit();
+        translator.assignEmit();
+        translator.assignEmit();
+        translator.labelEmit();
+        translator.gotoEmit();
+        translator.labelEmit();
+        translator.gotoEmit();
+
+    }
+
     private void next() {
         try {
             if (!scanner.hasNext()) {
-                scanner = new Scanner(lineNumberReader.readLine());
+                String line = lineNumberReader.readLine();
+                if (line == null) {
+                    current = null;
+                    return;
+                }
+                scanner = new Scanner(line);
                 lineNumber++;
             }
             current = next;
@@ -375,32 +407,60 @@ public class IntermediateTranslator {
         }
     }
 
-    public static void main(String[] args) {
-        String input = "test.inter";
-        IntermediateTranslator translator = new IntermediateTranslator(input, "out.sysvim");
-        translator.buildLabelTable();
-        translator.assginEmit();
-        translator.assginEmit();
-        translator.assginEmit();
-        translator.assginEmit();
-        translator.labelEmit();
-        translator.ifEmit();
+    private void eval() {
+//        try {
+        do {
+            switch (judge()) {
+                case LABEL:
+                    log("Var emit");
+                    labelEmit();
+                    break;
+                case CONDITION:
+                    log("Condition emit");
+                    ifEmit();
+                    break;
+                case ASSIGN:
+                    log("Assign emit");
+                    assignEmit();
+                    break;
+                case GOTO:
+                    log("Goto emit");
+                    gotoEmit();
+            }
+        } while (current != null);
+//        } catch (IOException e) {
+//            System.out.println(e.toString());
+//        }
+    }
+
+    private Type judge() {
+        if (current.charAt(0) == 'L' && current.charAt(current.length() - 1) == ':') {
+            return Type.LABEL;
+        } else if (current.equals("if") || current.equals("iffalse")) {
+            return Type.CONDITION;
+        } else if (current.equals("goto")) {
+            return Type.GOTO;
+        } else {
+            return Type.ASSIGN;
+        }
     }
 
     private void buildLabelTable() {
         String line;
         try {
-        while ((line = lineNumberReader.readLine()) != null) {
-            lineNumber++;
-            scanner = new Scanner(line);
+            while ((line = lineNumberReader.readLine()) != null) {
+                lineNumber++;
+                scanner = new Scanner(line);
 
-            while (scanner.hasNext()) {
-                labelEmit();
+                while (scanner.hasNext()) {
+                    labelEmit();
+                }
             }
-        }
-            scanner = new Scanner(file);
+            lineNumberReader = new LineNumberReader(new FileReader(file));
+            scanner = new Scanner(lineNumberReader.readLine());
             current = scanner.next();
             next = scanner.next();
+            lineNumber = 1;
         } catch (IOException e) {
             System.out.println(e.toString());
         }
@@ -441,11 +501,9 @@ public class IntermediateTranslator {
                 conditionEmit(Condition.IF);
             } else if (current.length() == 7 && current.substring(current.length() - 5).equals("false")) {
                 conditionEmit(Condition.IFFALSE);
-            } else {
-                idEmit();
             }
         }
-        gotoEmit();
+        next();
     }
 
     private void conditionEmit(Condition condition) {
@@ -472,17 +530,16 @@ public class IntermediateTranslator {
     }
 
     private void boolEmit() {
-        operatorEmit(dataHelper.getFlag());
+        operatorEmit(-1);
     }
 
-    private void assginEmit() {
+    private void assignEmit() {
         int reg = idEmit();
         next();
         if (!current.equals("=")) {
-            throw new IllegalArgumentException("expected = but receive " + current);
+            throw new IllegalArgumentException("expected = but receive " + current + " in line " + lineNumber);
         }
         operatorEmit(reg);
-        emit("pop " + reg + " nop");
     }
 
     private int idEmit() {
@@ -516,14 +573,22 @@ public class IntermediateTranslator {
         next();
         String op2 = getOperator();
         // FIXME: NOTE!!! NEXT Char was LOADED!!!
-        if (op2 == null) {
-            // common assign
-            emit("mov " + resultReg + " " + param1);
-        } else {
-            // operate and assign
+        if (resultReg == -1) {
+            // Bool Operator
             next();
             param2 = getParamAndEmitReg();
             emit(op2 + " " + param1 + " " + param2);
+        } else {
+            if (op2 == null) {
+                // common assign
+                emit("mov " + resultReg + " " + param1);
+            } else {
+                // operate and assign
+                next();
+                param2 = getParamAndEmitReg();
+                emit(op2 + " " + param1 + " " + param2);
+                emit("pop " + resultReg + " nop");
+            }
         }
     }
 
