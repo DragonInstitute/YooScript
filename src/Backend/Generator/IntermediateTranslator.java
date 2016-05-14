@@ -331,7 +331,7 @@ public class IntermediateTranslator {
         CONDITION, ASSIGN, GOTO, LABEL, VARIABLE, CONST
     }
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = false, RELEASE = true;
 
     // TODO: Pattern failed should push back code
     // HashTable <LabelId, InstructionPosition(lineNumber)>
@@ -346,7 +346,6 @@ public class IntermediateTranslator {
     private Hashtable<String, Integer> varMap = new Hashtable<>();
     private int varId = 1;
     private LineNumberReader lineNumberReader;
-
     // map relationship
     // varName -> varId -> hashcode -> stack / reg  -> value
     //   "a"   ->  var3 -> 34523524 -> var3, <0, 10>
@@ -373,20 +372,7 @@ public class IntermediateTranslator {
         String input = "test.inter";
         IntermediateTranslator translator = new IntermediateTranslator(input, "out.sysvim");
         translator.buildLabelTable();
-//        translator.eval();
-        translator.assignEmit();
-        translator.assignEmit();
-        translator.assignEmit();
-        translator.assignEmit();
-        translator.labelEmit();
-        translator.ifEmit();
-        translator.assignEmit();
-        translator.assignEmit();
-        translator.labelEmit();
-        translator.gotoEmit();
-        translator.labelEmit();
-        translator.gotoEmit();
-
+        translator.eval();
     }
 
     private void next() {
@@ -408,29 +394,25 @@ public class IntermediateTranslator {
     }
 
     private void eval() {
-//        try {
         do {
             switch (judge()) {
                 case LABEL:
-                    log("Var emit");
+                    log("Var");
                     labelEmit();
                     break;
                 case CONDITION:
-                    log("Condition emit");
+                    log("Condition");
                     ifEmit();
                     break;
                 case ASSIGN:
-                    log("Assign emit");
+                    log("Assign");
                     assignEmit();
                     break;
                 case GOTO:
-                    log("Goto emit");
+                    log("Goto");
                     gotoEmit();
             }
         } while (current != null);
-//        } catch (IOException e) {
-//            System.out.println(e.toString());
-//        }
     }
 
     private Type judge() {
@@ -480,28 +462,22 @@ public class IntermediateTranslator {
         }
     }
 
-    private boolean gotoEmit() {
+    private void gotoEmit() {
         next();
-        switch (current) {
-            case "goto":
-                next();
-                int label = readLabel();
-                emit("jump " + labels.get(label) + " nop");
-                lineNumber++;
-                return true;
-            default:
-                return false;
-        }
+        int label = readLabel();
+        emit("jump " + labels.get(label) + " nop");
+        lineNumber++;
+        next();
     }
 
     private void ifEmit() {
-        next();
-        if (current.startsWith("if")) {
-            if (current.length() == 2) {
+        switch (current) {
+            case "if":
                 conditionEmit(Condition.IF);
-            } else if (current.length() == 7 && current.substring(current.length() - 5).equals("false")) {
+                break;
+            case "iffalse":
                 conditionEmit(Condition.IFFALSE);
-            }
+
         }
         next();
     }
@@ -570,9 +546,11 @@ public class IntermediateTranslator {
         int param1, param2;
         next();
         param1 = getParamAndEmitReg();
+
+        //TODO here get next operator no only can validate it but also can move the char to next command
         next();
         String op2 = getOperator();
-        // FIXME: NOTE!!! NEXT Char was LOADED!!!
+
         if (resultReg == -1) {
             // Bool Operator
             next();
@@ -588,11 +566,15 @@ public class IntermediateTranslator {
                 param2 = getParamAndEmitReg();
                 emit(op2 + " " + param1 + " " + param2);
                 emit("pop " + resultReg + " nop");
+                next();
             }
         }
     }
 
     private String getOperator() {
+        if (current == null) {
+            return null;
+        }
         switch (current) {
             case "=":
                 return "mov";
@@ -633,9 +615,9 @@ public class IntermediateTranslator {
             // and it will store in the stack of varMap
             // then return the "1" directly because 1 is the key of it in varMap;
 
-//            int reg = dataHelper.getReg();
-//            emit("loda " + reg + " " + current);
-            return Integer.valueOf(current);
+            int reg = dataHelper.getReg();
+            emit("set " + reg + " " + current);
+            return reg;
         } else {
             // consider it "sampleVar" -> "var25"
             // so there must a reg or stack store the var which varId is var25.hashcode
@@ -665,7 +647,8 @@ public class IntermediateTranslator {
     }
 
     private void emit(String code) {
-        System.out.println(code);
+        if (RELEASE)
+            System.out.println(code);
     }
 
     private void log(String info) {
