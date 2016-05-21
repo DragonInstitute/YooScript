@@ -66,3 +66,4 @@ hs_err_pid*
 *.inter
 tests/
 test.*
+bocker.sh

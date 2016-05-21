@@ -3,6 +3,9 @@ package Backend.Generator;
 import java.io.*;
 import java.util.Scanner;
 
+import static Backend.Generator.Util.getInput;
+import static Backend.Generator.Util.getOutput;
+
 public class AssemblyTranslator {
 
     /**
@@ -28,18 +31,9 @@ public class AssemblyTranslator {
     }
 
     public static void main(String[] args) {
-        String output = "out.sysvim";
-        String input = "";
+        String input = getInput(args, null);
+        String output = getOutput(args, "out.sysvim");
         try {
-            if (args.length < 1) {
-                throw new IllegalArgumentException("No input file!");
-            } else if (args.length == 1) {
-                input = args[0];
-            } else if (args.length == 2) {
-                input = args[0];
-                output = args[1];
-            }
-
             process(input, output);
         } catch (IOException | IllegalArgumentException e) {
             System.out.println(e.getMessage());

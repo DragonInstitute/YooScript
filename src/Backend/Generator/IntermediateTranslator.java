@@ -7,6 +7,9 @@ import java.io.*;
 import java.nio.CharBuffer;
 import java.util.*;
 
+import static Backend.Generator.Util.getInput;
+import static Backend.Generator.Util.getOutput;
+
 class DataHelper {
 
     /**
@@ -355,7 +358,8 @@ public class IntermediateTranslator {
         try {
             file = new File(input);
             writer = new FileWriter(output);
-
+            PrintStream ps=new PrintStream(new FileOutputStream(output));
+            System.setOut(ps);
             lineNumberReader = new LineNumberReader(new FileReader(file));
             scanner = new Scanner(lineNumberReader.readLine());
             next = scanner.next();
@@ -369,8 +373,9 @@ public class IntermediateTranslator {
     // TODO: 16-5-14 after every function ended current should be the next char
 
     public static void main(String[] args) {
-        String input = "test.inter";
-        IntermediateTranslator translator = new IntermediateTranslator(input, "out.sysvim");
+        String input = getInput(args, null);
+        String output = getOutput(args, "out.sysvim");
+        IntermediateTranslator translator = new IntermediateTranslator(input, output);
         translator.buildLabelTable();
         translator.eval();
     }

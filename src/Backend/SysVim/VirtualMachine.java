@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Vector;
 
+import static Backend.Generator.Util.getInput;
+
 public class VirtualMachine {
     //instructions.get()
     //repeat private final static can make them easy to read
@@ -313,14 +315,10 @@ public class VirtualMachine {
         for (int i = 0; i < 256; i++) {
             stack.add(-3);
         }
-
-        if (args.length == 0) {
-            System.out.println("No input file!");
-            return;
-        }
+        String input = getInput(args, null);
         File in;
         try {
-            in = new File(args[0]);
+            in = new File(input);
             Scanner scanner = new Scanner(in);
             int i = 0;
             while (scanner.hasNextInt()) {

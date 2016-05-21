@@ -71,7 +71,6 @@ public class Parser {
 
     private Type type() throws IOException {
         Type p = (Type) lookAhead;
-        System.out.println();
         match(Tag.BASIC);
         if (lookAhead.tag != '[') {
             return p;
