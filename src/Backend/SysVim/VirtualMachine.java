@@ -266,6 +266,7 @@ public class VirtualMachine {
                 break;
             }
             case JUMP: {
+                // FIXME: JUMP according to THREE address
                 setRegValue(IP, getInstByOffset(1));
                 isJump = true;
                 break;

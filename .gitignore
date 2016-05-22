@@ -67,3 +67,6 @@ hs_err_pid*
 tests/
 test.*
 bocker.sh
+.output
+temp.*
+

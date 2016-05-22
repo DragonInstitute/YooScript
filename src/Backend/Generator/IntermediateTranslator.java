@@ -336,9 +336,12 @@ public class IntermediateTranslator {
 
     private static final boolean DEBUG = false, RELEASE = true;
 
+    private static final int BuildCommand = 1, BuildLabel = 2;
+    private static int BuildOption = BuildCommand;
+
     // TODO: Pattern failed should push back code
     // HashTable <LabelId, InstructionPosition(lineNumber)>
-    private Hashtable<Integer, Integer> labels = new Hashtable<>();
+    private static Hashtable<Integer, Integer> labels = new Hashtable<>();
     private Scanner scanner;
     private FileWriter writer;
     private int lineNumber = 1;
@@ -349,6 +352,8 @@ public class IntermediateTranslator {
     private Hashtable<String, Integer> varMap = new Hashtable<>();
     private int varId = 1;
     private LineNumberReader lineNumberReader;
+    private PrintStream ps;
+    private static PrintStream console;
     // map relationship
     // varName -> varId -> hashcode -> stack / reg  -> value
     //   "a"   ->  var3 -> 34523524 -> var3, <0, 10>
@@ -358,41 +363,71 @@ public class IntermediateTranslator {
         try {
             file = new File(input);
             writer = new FileWriter(output);
-            PrintStream ps=new PrintStream(new FileOutputStream(output));
+            ps = new PrintStream(new FileOutputStream(output));
+            console = System.out;
             System.setOut(ps);
             lineNumberReader = new LineNumberReader(new FileReader(file));
-            scanner = new Scanner(lineNumberReader.readLine());
-            next = scanner.next();
+            String line = lineNumberReader.readLine();
 
+            scanner = new Scanner(line);
+            next();
         } catch (IOException e) {
             System.out.println("Build translator failed");
             System.out.println(e.toString());
         }
     }
 
-    // TODO: 16-5-14 after every function ended current should be the next char
-
     public static void main(String[] args) {
         String input = getInput(args, null);
         String output = getOutput(args, "out.sysvim");
         IntermediateTranslator translator = new IntermediateTranslator(input, output);
-        translator.buildLabelTable();
+//        translator.buildLabelTable();
+
         translator.eval();
+        IntermediateTranslator tableBuilder = new IntermediateTranslator(output, "temp.output");
+        tableBuilder.lineNumber = 1;
+        tableBuilder.buildLabelTable();
+        tableBuilder.labelReplace();
     }
 
     private void next() {
         try {
-            if (!scanner.hasNext()) {
-                String line = lineNumberReader.readLine();
-                if (line == null) {
-                    current = null;
-                    return;
+            String tempLine;
+            if (scanner.hasNext()) {
+                if (current == null && next == null) {
+                    next = scanner.next();
+                    if (scanner.hasNext()) {
+                        current = next;
+                        next = scanner.next();
+                    } else {
+                        tempLine = lineNumberReader.readLine();
+                        lineNumber++;
+                        if (tempLine != null) {
+                            scanner = new Scanner(tempLine);
+                            current = next;
+                            next = scanner.next();
+                        } else {
+                            // eof
+                            current = next;
+                            next = null;
+                        }
+                    }
+                } else {
+                    current = next;
+                    next = scanner.next();
                 }
-                scanner = new Scanner(line);
-                lineNumber++;
+            } else {
+                tempLine = lineNumberReader.readLine();
+                if (tempLine != null) {
+                    scanner = new Scanner(tempLine);
+                    lineNumber++;
+                    current = next;
+                    next = scanner.next();
+                } else {
+                    current = next;
+                    next = null;
+                }
             }
-            current = next;
-            next = scanner.next();
         } catch (IOException e) {
             System.out.println(e.toString());
         }
@@ -403,19 +438,25 @@ public class IntermediateTranslator {
             switch (judge()) {
                 case LABEL:
                     log("Var");
-                    labelEmit();
+                    labelDoNothing();
+//                    labelEmit();
+                    next();
                     break;
                 case CONDITION:
                     log("Condition");
                     ifEmit();
+                    next();
                     break;
                 case ASSIGN:
                     log("Assign");
                     assignEmit();
+                    next();
                     break;
                 case GOTO:
                     log("Goto");
                     gotoEmit();
+                    next();
+                    break;
             }
         } while (current != null);
     }
@@ -433,28 +474,58 @@ public class IntermediateTranslator {
     }
 
     private void buildLabelTable() {
-        String line;
         try {
-            while ((line = lineNumberReader.readLine()) != null) {
-                lineNumber++;
-                scanner = new Scanner(line);
-
-                while (scanner.hasNext()) {
-                    labelEmit();
-                }
+            while (current != null) {
+                labelEmit();
+                next();
             }
+            lineNumber++;
+
             lineNumberReader = new LineNumberReader(new FileReader(file));
             scanner = new Scanner(lineNumberReader.readLine());
             current = scanner.next();
-            next = scanner.next();
+            if (scanner.hasNext()) {
+                next = scanner.next();
+            } else {
+                next = null;
+            }
             lineNumber = 1;
         } catch (IOException e) {
-            System.out.println(e.toString());
+            e.printStackTrace();
+        }
+    }
+
+    private void labelReplace() {
+        int label;
+        while (current != null) {
+            if ((label = readLabel()) != 0) {
+                if (current.charAt(current.length() - 1) != ':') {
+                    System.out.print(labels.get(label)+" ");
+                }
+            } else {
+                System.out.print(current + " ");
+            }
+            next();
+        }
+    }
+
+    private boolean labelDoNothing() {
+        int label;
+        if ((label = readLabel()) != 0) {
+            if (current.charAt(current.length() - 1) == ':') {
+                log("label " + label + " is saved in lineNumber " + lineNumber);
+                System.out.print("L" + label + ": ");
+            } else {
+                System.out.print("L" + label+" ");
+            }
+            return true;
+        } else {
+            return false;
         }
     }
 
     private boolean labelEmit() {
-        next();
+        // FIXME: goto line number is the inter line number instead of assembly line number
         int label;
         if ((label = readLabel()) != 0) {
             if (current.charAt(current.length() - 1) == ':') {
@@ -470,21 +541,25 @@ public class IntermediateTranslator {
     private void gotoEmit() {
         next();
         int label = readLabel();
-        emit("jump " + labels.get(label) + " nop");
+        if (BuildOption == BuildCommand) {
+            emit("jump L" + label + " nop");
+        } else {
+            emit("jump " + labels.get(label) + " nop");
+        }
         lineNumber++;
-        next();
     }
 
     private void ifEmit() {
         switch (current) {
             case "if":
+                next();
                 conditionEmit(Condition.IF);
                 break;
             case "iffalse":
+                next();
                 conditionEmit(Condition.IFFALSE);
 
         }
-        next();
     }
 
     private void conditionEmit(Condition condition) {
@@ -493,10 +568,18 @@ public class IntermediateTranslator {
         int label = readLabel();
         switch (condition) {
             case IF:
-                emit("if " + labels.get(label) + " nop");
+                if (BuildOption == BuildCommand) {
+                    emit("if L" + label + " nop");
+                } else {
+                    emit("if " + labels.get(label) + " nop");
+                }
                 break;
             case IFFALSE:
-                emit("ifn " + labels.get(label) + " nop");
+                if (BuildOption == BuildCommand) {
+                    emit("ifn L" + label + " nop");
+                } else {
+                    emit("ifn " + labels.get(label) + " nop");
+                }
                 break;
         }
     }
@@ -520,6 +603,7 @@ public class IntermediateTranslator {
         if (!current.equals("=")) {
             throw new IllegalArgumentException("expected = but receive " + current + " in line " + lineNumber);
         }
+        next();
         operatorEmit(reg);
     }
 
@@ -547,40 +631,39 @@ public class IntermediateTranslator {
     }
 
     private void operatorEmit(int resultReg) {
-        // result op param1 [ op2, param2 ]
+        // ( result op ) param1 [ op2, param2 ]
         int param1, param2;
-        next();
-        param1 = getParamAndEmitReg();
-
+        param1 = getParamAndEmitReg(current);
         //TODO here get next operator no only can validate it but also can move the char to next command
-        next();
-        String op2 = getOperator();
 
         if (resultReg == -1) {
-            // Bool Operator
+            // Bool Operatornext();
             next();
-            param2 = getParamAndEmitReg();
+            String op2 = getOperator(current);
+            next();
+            param2 = getParamAndEmitReg(current);
             emit(op2 + " " + param1 + " " + param2);
         } else {
-            if (op2 == null) {
-                // common assign
-                emit("mov " + resultReg + " " + param1);
-            } else {
+            if (getOperator(next) != null) {
+                next();
+                String op2 = getOperator(current);
                 // operate and assign
                 next();
-                param2 = getParamAndEmitReg();
+                param2 = getParamAndEmitReg(current);
                 emit(op2 + " " + param1 + " " + param2);
                 emit("pop " + resultReg + " nop");
-                next();
+            } else {
+                // common assign
+                emit("mov " + resultReg + " " + param1);
             }
         }
     }
 
-    private String getOperator() {
-        if (current == null) {
+    private String getOperator(String pa) {
+        if (pa == null) {
             return null;
         }
-        switch (current) {
+        switch (pa) {
             case "=":
                 return "mov";
             case "+":
@@ -611,7 +694,7 @@ public class IntermediateTranslator {
     /**
      * return a reg of a var or return the value of a const
      */
-    private int getParamAndEmitReg() {
+    private int getParamAndEmitReg(String current) {
         if (StringUtils.isNumeric(current)) {
             // if the param is a constant,
             // then save to mapping and store a new var in dataHelper
@@ -657,8 +740,10 @@ public class IntermediateTranslator {
     }
 
     private void log(String info) {
+        System.setOut(console);
         if (DEBUG)
             System.out.println(info);
+        System.setOut(ps);
     }
 
 }
