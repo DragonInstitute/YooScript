@@ -2,11 +2,13 @@ package Backend.SysVim;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Vector;
 
 import static Backend.Generator.Util.getInput;
+import static Backend.Generator.Util.getOutput;
 
 public class VirtualMachine {
     //instructions.get()
@@ -320,10 +322,10 @@ public class VirtualMachine {
     public static void main(String[] args) throws IOException {
         VirtualMachine virtualMachine = new VirtualMachine();
 
+        String output = getOutput(args, "VMStack.txt");
+        PrintStream ps = new PrintStream(new File(output));
+        System.setOut(ps);
 
-//        for (int i = 0; i < REGISTER_SIZE; i++) {
-//            registers.add(-2);
-//        }
         for (int i = 0; i < 256; i++) {
             stack.add(-3);
         }
@@ -335,7 +337,6 @@ public class VirtualMachine {
             int i = 0;
             while (scanner.hasNextInt()) {
                 instructions.add(i, scanner.nextInt());
-                System.out.print(getInstByIndex(i) + " ");
                 i++;
             }
             System.out.println();

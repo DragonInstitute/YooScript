@@ -1,27 +1,30 @@
 package Backend.Generator;
 
 public class Util {
+
+    public static final int INPUT = 0, OUTPUT = 1, THIRD = 2;
+
     public static String getInput(String[] args, String defaultValue) {
-        if (args.length < 1) {
-            if (defaultValue == null) {
-                throw new IllegalArgumentException("No input file!");
-            } else {
-                return defaultValue;
-            }
-        } else if (args.length >= 1) {
-            return args[0];
-        }
-        return defaultValue;
+        return getArgs(args, INPUT, defaultValue);
     }
 
     public static String getOutput(String[] args, String defaultValue) {
-        if (args.length == 2) {
-            return args[1];
-        }
-        if (defaultValue == null) {
-            throw new IllegalArgumentException("No input file!");
+        return getArgs(args, OUTPUT, defaultValue);
+    }
+
+    public static String getArgs(String[] args, int position, String defaultValue) {
+        return getArgs(args, position, defaultValue == null, defaultValue);
+    }
+
+    public static String getArgs(String[] args, int position, boolean need, String defaultValue) {
+        if (args.length >= (position + 1)) {
+            return args[position];
         } else {
-            return defaultValue;
+            if (need) {
+                throw new IllegalArgumentException("Too less args!");
+            } else {
+                return defaultValue;
+            }
         }
     }
 

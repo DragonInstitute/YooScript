@@ -69,4 +69,5 @@ test.*
 bocker.sh
 .output
 temp.*
-
+VMStack.txt
+Makefile

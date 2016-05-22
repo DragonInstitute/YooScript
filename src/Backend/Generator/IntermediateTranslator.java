@@ -3,12 +3,11 @@ package Backend.Generator;
 
 import org.apache.commons.lang3.StringUtils;
 
+import javax.annotation.processing.FilerException;
 import java.io.*;
-import java.nio.CharBuffer;
 import java.util.*;
 
-import static Backend.Generator.Util.getInput;
-import static Backend.Generator.Util.getOutput;
+import static Backend.Generator.Util.*;
 
 class DataHelper {
 
@@ -353,7 +352,7 @@ public class IntermediateTranslator {
     private int varId = 1;
     private LineNumberReader lineNumberReader;
     private PrintStream ps;
-    private static PrintStream console;
+    private PrintStream console;
     // map relationship
     // varName -> varId -> hashcode -> stack / reg  -> value
     //   "a"   ->  var3 -> 34523524 -> var3, <0, 10>
@@ -377,14 +376,15 @@ public class IntermediateTranslator {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FilerException {
         String input = getInput(args, null);
-        String output = getOutput(args, "out.sysvim");
-        IntermediateTranslator translator = new IntermediateTranslator(input, output);
-//        translator.buildLabelTable();
+        String temp = getOutput(args, "temp.output");
+        String output = getArgs(args, THIRD, "out.ass");
+
+        IntermediateTranslator translator = new IntermediateTranslator(input, temp);
 
         translator.eval();
-        IntermediateTranslator tableBuilder = new IntermediateTranslator(output, "temp.output");
+        IntermediateTranslator tableBuilder = new IntermediateTranslator(temp, output);
         tableBuilder.lineNumber = 1;
         tableBuilder.buildLabelTable();
         tableBuilder.labelReplace();
@@ -500,7 +500,7 @@ public class IntermediateTranslator {
         while (current != null) {
             if ((label = readLabel()) != 0) {
                 if (current.charAt(current.length() - 1) != ':') {
-                    System.out.print(labels.get(label)+" ");
+                    System.out.print(labels.get(label) + " ");
                 }
             } else {
                 System.out.print(current + " ");
@@ -516,7 +516,7 @@ public class IntermediateTranslator {
                 log("label " + label + " is saved in lineNumber " + lineNumber);
                 System.out.print("L" + label + ": ");
             } else {
-                System.out.print("L" + label+" ");
+                System.out.print("L" + label + " ");
             }
             return true;
         } else {
