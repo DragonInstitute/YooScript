@@ -25,7 +25,7 @@ public class VirtualMachine {
     private final static int IF = 11;
     private final static int IFN = 12;
     private final static int LODR = 13;
-    private final static int PSHR_ABANDONED = 14;
+    private final static int BIGE = 14;
     private final static int NOP = 15;
     private final static int JUMP = 16;
     private final static int EQ = 17;
@@ -35,7 +35,7 @@ public class VirtualMachine {
     private final static int CLRF = 21;
     private final static int BIG = 22;
     private final static int SAVE = 23;
-    private final static int LOAD_ABANDONED = 24;
+    private final static int LESE = 24;
     private final static int SETA = 25;
     private final static int LODA = 26;
 
@@ -246,14 +246,16 @@ public class VirtualMachine {
             }
             case IF: {
                 if (getRegValue(FLAG) == 1) {
-                    setRegValue(IP, getInstByOffset(1));
+                    int pos = getInstByOffset(1) * 3 - 3;
+                    setRegValue(IP, pos);
                     isJump = true;
                 }
                 break;
             }
             case IFN: {
                 if (getRegValue(FLAG) == 0) {
-                    setRegValue(IP, getInstByOffset(1));
+                    int pos = getInstByOffset(1) * 3 - 3;
+                    setRegValue(IP, pos);
                     isJump = true;
                 }
                 break;
@@ -267,7 +269,8 @@ public class VirtualMachine {
             }
             case JUMP: {
                 // FIXME: JUMP according to THREE address
-                setRegValue(IP, getInstByOffset(1));
+                int pos = getInstByOffset(1) * 3 - 3;
+                setRegValue(IP, pos);
                 isJump = true;
                 break;
             }
@@ -296,6 +299,14 @@ public class VirtualMachine {
                 break;
             }
             case LESS: {
+                setRegValue(FLAG, (getRegValue(getInstByOffset(1)) < getRegValue(getInstByOffset(2))) ? 1 : 0);
+                break;
+            }
+            case BIGE: {
+                setRegValue(FLAG, (getRegValue(getInstByOffset(1)) > getRegValue(getInstByOffset(2))) ? 1 : 0);
+                break;
+            }
+            case LESE: {
                 setRegValue(FLAG, (getRegValue(getInstByOffset(1)) < getRegValue(getInstByOffset(2))) ? 1 : 0);
                 break;
             }
@@ -332,7 +343,9 @@ public class VirtualMachine {
             setRegValue(SP, -1);
             setRegValue(IP, 0);
             while (running && getRegValue(IP) < virtualMachine.insCount) {
-                virtualMachine.eval(getInstByIndex(getRegValue(IP)));
+                int ip = getRegValue(IP);
+                int instruction = getInstByIndex(ip);
+                virtualMachine.eval(instruction);
                 if (!isJump) {
                     forward(3);
                 }

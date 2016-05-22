@@ -26,7 +26,6 @@ public class AssemblyTranslator {
             System.out.print(code + " ");
             writer.write(code + " ");
         }
-        System.out.println();
         writer.close();
     }
 
@@ -137,6 +136,14 @@ public class AssemblyTranslator {
                 break;
             case "SETA":
             case "seta":
+                code = 25;
+                break;
+            case "BIGE":
+            case "bige":
+                code = 23;
+                break;
+            case "LESE":
+            case "lese":
                 code = 25;
                 break;
             case "LODA":
