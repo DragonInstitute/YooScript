@@ -1,0 +1,15 @@
+L1: set 201 1
+mov 200 201
+L3: set 202 10
+mov 201 202
+L4: set 202 0
+big 201 202
+ifn L2 nop
+L5: set 202 1
+add 200 202
+pop 200 nop
+L6: set 202 1
+sub 201 202
+pop 201 nop
+jump L4 nop
+L2: 

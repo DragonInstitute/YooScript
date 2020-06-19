@@ -1,0 +1,7 @@
+L1: 	a = 1
+L3: 	b = 10
+L4: 	iffalse b > 0 goto L2
+L5: 	a = a + 1
+L6: 	b = b - 1
+	goto L4
+L2: 

@@ -11,7 +11,7 @@ import java.util.Arrays;
 public class Controller {
     public static void main(String[] args) {
         try {
-            String path = "/home/lingsamuel/Documents/IdeaProjects/Compiler/";
+            String path = "/home/lingsamuel/Projects/YooScript/";
             String[] defaultArgs = {path + "test.yoo", path + "test.inter", path + "test.output", path + "test.ass", path + "test.sysvim", path + "test.txt"};
             System.arraycopy(args, 0, defaultArgs, 0, args.length);
 

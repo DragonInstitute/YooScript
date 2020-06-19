@@ -60,14 +60,9 @@ hs_err_pid*
 
 *.iml
 .idea/
-*.sysvim
-*.yoo
-*.ass
-*.inter
 tests/
-test.*
 bocker.sh
 .output
 temp.*
-VMStack.txt
 Makefile
+output/

@@ -329,7 +329,7 @@ public class VirtualMachine {
         for (int i = 0; i < 256; i++) {
             stack.add(-3);
         }
-        String input = getInput(args, null);
+        String input = getInput(args, "/home/lingsamuel/Projects/YooScript/test.sysvim");
         File in;
         try {
             in = new File(input);
